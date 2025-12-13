@@ -25,11 +25,12 @@ lcf(X::AbstractVector, θ::Real = 1) = θ ≈ 0 ? one(θ)*var(X) : -2/θ^2 * log
 Empirical codifference of sample X, Y.
 """
 function cdf(X::AbstractVector, Y::AbstractVector, θ::Real = 1, type::Symbol = :s)
+    type ∉ (:s, :+, :-) && error("Unrecognised type of codifference")
     if type == :s
         1/4 * ( lcf(X+Y, θ) - lcf(X-Y, θ) )
     elseif type == :+
         1/2 * ( lcf(X, θ) + lcf(Y, θ) - lcf(X-Y, θ) )
-    elseif type == :-
+    else
         -1/2 * ( lcf(X, θ) + lcf(Y, θ) - lcf(X+Y, θ) )
     end
 end
@@ -54,6 +55,7 @@ end
 Asymptotic distribution of the emprical codifference.
 """
 function cdfAsymptDistr(X::AbstractVector, Y::AbstractVector, θ::Real = 1, type::Symbol = :s)
+    type ∉ (:s, :+, :-) && error("Unrecognised type of codifference")
     n = length(X)
     μ = cdf(X, Y, θ, type)
     σ = if type == :s
@@ -62,7 +64,7 @@ function cdfAsymptDistr(X::AbstractVector, Y::AbstractVector, θ::Real = 1, type
     elseif type == :+
         ϕx, ϕy, ϕxmy = ecf(X, θ), ecf(X, θ), ecf(X-Y, θ)
         1/θ^2 * sqrt(c(X, X, θ)/ϕx^2 + c(Y, Y, θ)/ϕy^2 + c(X-Y, X-Y, θ)/ϕxmy^2 + 2c(X, Y, θ)/(ϕx*ϕy) - 2c(X, X-Y, θ)/(ϕx*ϕxmy) - 2c(Y, X-Y, θ)/(ϕy*ϕxmy))
-    elseif type == :-
+    else
         ϕx, ϕy, ϕxpy = ecf(X, θ), ecf(X, θ), ecf(X+Y, θ)
         1/θ^2 * sqrt(c(X, X, θ)/ϕx^2 + c(Y, Y, θ)/ϕy^2 + c(X+Y, X+Y, θ)/ϕxpy^2 + 2c(X, Y, θ)/(ϕx*ϕy) - 2c(X, X+Y, θ)/(ϕx*ϕxpy) - 2c(Y, X+Y, θ)/(ϕy*ϕxpy))
     end
