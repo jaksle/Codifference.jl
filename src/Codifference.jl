@@ -2,7 +2,7 @@ module Codifference
 
 using StatsBase, Distributions
 
-export ecf, lcf, cdf, lcfAsymptDistr, cdfAsymptDistr, lcfConfInterval, cdfConfInterval
+export ecf, lcf, cod, lcfAsymptDistr, codAsymptDistr, lcfConfInterval, codConfInterval
 
 
 """
@@ -15,16 +15,21 @@ ecf(X::AbstractVector, θ::Real) = mean( cos(θ*x) for x in X)
 """
     lcf(X::AbstractVector, θ::Real = 1)
 
-Empirical log characteristic function of sample X.
+Empirical log characteristic function of sample X. Returns NaN if emprical characteristic function is non-positive.
 """
-lcf(X::AbstractVector, θ::Real = 1) = θ ≈ 0 ? one(θ)*var(X) : -2/θ^2 * log(ecf(X,θ))
+function lcf(X::AbstractVector, θ::Real = 1) 
+    θ ≈ 0 && return one(θ)*var(X) 
+    e = ecf(X,θ)
+    e <= 0 && return one(θ)*eltype(X)(NaN)
+    return -2/θ^2 * log(e)
+end
 
 """
-    cdf(X::AbstractVector, Y::AbstractVector, θ::Real = 1, type::Symbol = :s)
+    cod(X::AbstractVector, Y::AbstractVector, θ::Real = 1, type::Symbol = :s)
 
 Empirical codifference of sample X, Y.
 """
-function cdf(X::AbstractVector, Y::AbstractVector, θ::Real = 1, type::Symbol = :s)
+function cod(X::AbstractVector, Y::AbstractVector, θ::Real = 1, type::Symbol = :s)
     type ∉ (:s, :+, :-) && error("Unrecognised type of codifference")
     if type == :s
         1/4 * ( lcf(X+Y, θ) - lcf(X-Y, θ) )
@@ -50,14 +55,14 @@ function lcfAsymptDistr(X::AbstractVector, θ::Real = 1)
 end
 
 """
-    cdfAsymptDistr(X::AbstractVector, Y::AbstractVector, θ::Real = 1, type::Symbol = :s)
+    codAsymptDistr(X::AbstractVector, Y::AbstractVector, θ::Real = 1, type::Symbol = :s)
 
 Asymptotic distribution of the emprical codifference.
 """
-function cdfAsymptDistr(X::AbstractVector, Y::AbstractVector, θ::Real = 1, type::Symbol = :s)
+function codAsymptDistr(X::AbstractVector, Y::AbstractVector, θ::Real = 1, type::Symbol = :s)
     type ∉ (:s, :+, :-) && error("Unrecognised type of codifference")
     n = length(X)
-    μ = cdf(X, Y, θ, type)
+    μ = cod(X, Y, θ, type)
     σ = if type == :s
         ϕxmy, ϕxpy = ecf(X-Y, θ), ecf(X+Y, θ)
         1/2θ^2 * sqrt(c(X+Y, X+Y, θ)/ϕxpy^2 + c(X-Y, X-Y, θ)/ϕxmy^2 - 2c(X+Y, X-Y, θ)/(ϕxpy*ϕxmy))
@@ -84,13 +89,13 @@ function lcfConfInterval(X::AbstractVector, θ::Real = 1, p::Real = 0.95)
 end
 
 """
-    cdfConfInterval(X::AbstractVector, Y::AbstractVector, θ::Real = 1, p::Real = 0.95, type::Symbol = :s)
+    codConfInterval(X::AbstractVector, Y::AbstractVector, θ::Real = 1, p::Real = 0.95, type::Symbol = :s)
 
 Asymptotic confidence interval of the empircal codifference.
 """
-function cdfConfInterval(X::AbstractVector, Y::AbstractVector, θ::Real = 1, p::Real = 0.95, type::Symbol = :s)
+function codConfInterval(X::AbstractVector, Y::AbstractVector, θ::Real = 1, p::Real = 0.95, type::Symbol = :s)
     α = 1-p
-    d = cdfAsymptDistr(X, Y, θ, type)
+    d = codAsymptDistr(X, Y, θ, type)
     return (quantile(d, α/2), quantile(d, 1-α/2))
 end
 
